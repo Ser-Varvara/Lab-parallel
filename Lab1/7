@@ -1,0 +1,90 @@
+#include <iostream>
+#include <string>
+#include <thread>
+#include <mutex>
+#include <utility>
+
+using namespace std;
+
+// 1. Структура даних
+struct someData {
+    string name;
+    string surname;
+    string address;
+    int age;
+};
+
+// 2. Клас обгортка
+class exchangePerson {
+public:
+    someData data;
+    mutex m;
+
+    void print(const string& label) {
+        lock_guard<mutex> lock(m);
+        cout << label << ": " << data.name << " " << data.surname
+            << ", Adr: " << data.address << ", Age: " << data.age << endl;
+    }
+
+    static void JohnDoe(exchangePerson& p) {
+        lock_guard<mutex> lock(p.m);
+        p.data.name = "John";
+        p.data.surname = "Doe";
+        p.data.address = "Unknown";
+        p.data.age = 120;
+    }
+
+    static void JacobSmith(exchangePerson& p) {
+        lock_guard<mutex> lock(p.m);
+        p.data.name = "Jacob";
+        p.data.surname = "Smith";
+        p.data.address = "Known";
+        p.data.age = 1;
+    }
+
+    // ОСЬ ТУТ ЗМІНИ ДЛЯ КРОКУ 7:
+    static void Swap(exchangePerson& p1, exchangePerson& p2) {
+        if (&p1 == &p2) return;
+
+        // Використовуємо std::unique_lock та std::defer_lock
+        unique_lock<mutex> lock1(p1.m, defer_lock);
+        unique_lock<mutex> lock2(p2.m, defer_lock);
+
+        // Передаємо самі об'єкти unique_lock у функцію lock()
+        lock(lock1, lock2);
+
+        // Здійснюємо обмін
+        swap(p1.data, p2.data);
+    }
+};
+
+int main() {
+    system("chcp 65001 > nul");
+
+    exchangePerson person1;
+    exchangePerson person2;
+
+    // Запускаємо потоки для початкового заповнення об'єктів
+    thread t1(exchangePerson::JohnDoe, ref(person1));
+    thread t2(exchangePerson::JacobSmith, ref(person2));
+
+    t1.detach();
+    t2.detach();
+
+    // Затримка, щоб потоки встигли записати дані
+    this_thread::sleep_for(chrono::milliseconds(100));
+
+    cout << "=== ДО ОБМІНУ (SWAP) ===" << endl;
+    person1.print("Person 1");
+    person2.print("Person 2");
+
+    // Запускаємо Swap в окремому потоці та чекаємо на результат через join()
+    thread tSwap(exchangePerson::Swap, ref(person1), ref(person2));
+    tSwap.join();
+
+    cout << "\n=== ПІСЛЯ ОБМІНУ (SWAP) ===" << endl;
+    person1.print("Person 1");
+    person2.print("Person 2");
+
+    return 0;
+}
