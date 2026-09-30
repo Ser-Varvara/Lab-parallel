@@ -1,0 +1,46 @@
+#include <iostream>
+#include <list>
+#include <thread>
+#include <algorithm>
+#include <chrono>
+
+using namespace std;
+
+list<int> l; // Глобальний список
+
+void AddToList(int startValue) {
+    int currentValue = startValue;
+    for (int i = 0; i < 10; ++i) {
+        l.push_back(currentValue);
+        cout << "[AddToList] Додано елемент: " << currentValue << endl;
+        currentValue++;
+        this_thread::sleep_for(chrono::milliseconds(10)); // Невелика затримка для демонстрації перепереплетення
+    }
+}
+
+void ListContains(int searchValue) {
+    for (int i = 0; i < 10; ++i) {
+        // Перевірка на входження елемента у список
+        auto it = find(l.begin(), l.end(), searchValue);
+        if (it != l.end()) {
+            cout << "[ListContains] Спроба " << i + 1 << ": Елемент " << searchValue << " знайдено у списку." << endl;
+        } else {
+            cout << "[ListContains] Спроба " << i + 1 << ": Елемент " << searchValue << " НЕ знайдено." << endl;
+        }
+        this_thread::sleep_for(chrono::milliseconds(10));
+    }
+}
+
+int main() {
+    system("chcp 65001 > nul"); // Для коректного відображення кирилиці в консолі
+
+    int initialValue = 5;
+
+    thread t1(AddToList, initialValue);
+    thread t2(ListContains, initialValue);
+
+    t1.join();
+    t2.join();
+
+    return 0;
+}
