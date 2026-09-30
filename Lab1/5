@@ -1,0 +1,51 @@
+#include <iostream>
+#include <list>
+#include <thread>
+#include <mutex>
+#include <algorithm>
+#include <chrono>
+
+using namespace std;
+
+list<int> l;  // Глобальний список
+mutex m;      // Глобальний м'ютекс
+
+// Функція додає ТІЛЬКИ ОДИН елемент за свій виклик
+void AddToList(int value) {
+    // lock_guard захоплює м'ютекс у конструкторі та автоматично звільняє у деструкторі
+    lock_guard<mutex> lock(m);
+    l.push_back(value);
+    cout << "[AddToList] Додано елемент: " << value << endl;
+}
+
+// Функція здійснює ТІЛЬКИ ОДНУ перевірку за свій виклик
+void ListContains(int searchValue, int attempt) {
+    lock_guard<mutex> lock(m);
+    auto it = find(l.begin(), l.end(), searchValue);
+    if (it != l.end()) {
+        cout << "[ListContains] Спроба " << attempt << ": Елемент " << searchValue << " знайдено." << endl;
+    } else {
+        cout << "[ListContains] Спроба " << attempt << ": Елемент " << searchValue << " НЕ знайдено." << endl;
+    }
+}
+
+int main() {
+    system("chcp 65001 > nul");
+
+    int startValue = 5;
+
+    // Запускаємо 10 разів кожен із потоків у циклі
+    for (int i = 0; i < 10; ++i) {
+        thread tAdd(AddToList, startValue + i);
+        thread tCheck(ListContains, startValue, i + 1);
+
+        // Від'єднуємо потоки від головного
+        tAdd.detach();
+        tCheck.detach();
+    }
+
+    // Даємо час усім 20 від'єднаним потокам завершити свою роботу
+    this_thread::sleep_for(chrono::milliseconds(500));
+
+    return 0;
+}
