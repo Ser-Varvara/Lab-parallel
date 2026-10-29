@@ -1,0 +1,6 @@
+# Compiled C++ programs
+*.exe
+
+# Object files
+*.o
+*.obj
