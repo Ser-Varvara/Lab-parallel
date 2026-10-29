@@ -1,4 +1,3 @@
-
 #include <iostream>
 #include <future>
 #include <chrono>
